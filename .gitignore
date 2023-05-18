@@ -9,3 +9,8 @@ msedgedriver_path.txt
 oldShipList_path.txt
 output_path.txt
 userdir.txt
+
+# 発送済みリスト
+/old_ship_lists
+
+/source/__pycache__

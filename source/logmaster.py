@@ -18,12 +18,12 @@ class WriteLogger(object):
             with open(file_path, "w") as file:
                 pass
 
-    def configure_loggers(self, folder_name, file_name):
+    def configure_loggers(self, folder_name:str, file_name:str):
         formatter = Formatter('%(asctime)s - %(message)s')
 
         self.logger = self.create_logger("logger", folder_name, file_name, formatter, DEBUG)
 
-    def create_logger(self, name, folder_name, file_name, formatter, level):
+    def create_logger(self, name:str, folder_name:str, file_name:str, formatter:str, level:str):
         logger = getLogger(name)
         logger.setLevel(level)
 

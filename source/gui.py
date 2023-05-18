@@ -4,6 +4,7 @@ import PySimpleGUI as sg
 from tkinter import messagebox
 from logmaster import WriteLogger
 from scraper import MercariScraper
+from move_file import move_ship_list
 
 class GUI(MercariScraper):
 
@@ -28,14 +29,22 @@ class GUI(MercariScraper):
         layout = [[sg.Text("自動で発送通知を押下するプログラムです\n\n全ての発送が終了後に実施してください\n", font=self.font)],
                 [sg.Button('発送を通知する', key='-ship-', font=self.font)]]
         return layout
+
+    # 発送ボタンを押下するレイアウト
+    def move_file_layout(self) -> list:
+        layout = [[sg.Text("自動で宛名ファイルを移動するプログラムです\n\n発送通知後に実施してください。\n", font=self.font)],
+                [sg.Button('ファイルを移動する', key='-move-', font=self.font)]]
+        return layout
     
     # メインウィンドウのレイアウト
     def layout(self) -> list:
         get_data_layout = self.get_layout()
         ship_layout = self.ship_layout()
+        move_layout = self.move_file_layout()
         layout = [[sg.Text('業務を選択してください。', font=self.font)],
                 [sg.TabGroup([[sg.Tab('商品情報取得', get_data_layout),
-                                sg.Tab('発送通知', ship_layout)]], key='-TABGROUP-', enable_events=True, font=self.font)]]    
+                                sg.Tab('発送通知', ship_layout),
+                                sg.Tab('ファイル移動', move_layout)]], key='-TABGROUP-', enable_events=True, font=self.font)]]    
         return layout
 
     def main(self):
@@ -83,8 +92,13 @@ class GUI(MercariScraper):
                     # URLに遷移し、処理を行う
                     scraper.process_urls(urls)
                     scraper.quit()
-                    messagebox.showinfo("終了通知", "発送が完了しました")
+                    messagebox.showinfo("終@了通知", "発送が完了しました")
 
+            if event == '-move-':
+                result = move_ship_list()
+                self.record.logger.info(result)
+                messagebox.showinfo("結果", result)
+                
         window.close()
 
 
