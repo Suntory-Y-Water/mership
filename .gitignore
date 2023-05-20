@@ -12,5 +12,6 @@ userdir.txt
 
 # 発送済みリスト
 /old_ship_lists
+output.csv
 
 /source/__pycache__

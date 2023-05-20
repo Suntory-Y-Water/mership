@@ -86,8 +86,8 @@ class MercariScraper(object):
         shipping_dict = {}
         count = 1
         
-        # while count < 5:
-        while True:
+        while count < 5:
+        # while True:
             try:
                 # 商品情報
                 products_detail = self.driver.find_element(By.XPATH, f"/html/body/div[1]/div/div[2]/main/div[2]/div[{count}]/div[2]/a/mer-information-row").text
@@ -116,7 +116,7 @@ class MercariScraper(object):
         return shipping_url_list
     
 
-    def get_buyer_information(self, products_url: str):
+    def get_buyer_information(self, products_url: str) -> list:
         """_summary_
 
         Args:
@@ -125,38 +125,52 @@ class MercariScraper(object):
         Returns:
             _type_: _description_
         """
-        self.get_url(products_url)
-
-        # shadow-rootの読み込み
-        shadow_host_selector = "#main > div > div.sc-faba0f76-2.kuUrEK > div > div > div.merList.border__d0a89e6b > div > div.content__e1ae3292 > a > mer-item-object"
-
-        shadow_host_element = self.driver.find_element(By.CSS_SELECTOR, shadow_host_selector)
-        # shadowRoot要素を取得
-        shadow_root = self.driver.execute_script("return arguments[0].shadowRoot", shadow_host_element)
-
-        # 商品タイトルを取得
-        title = shadow_root.find_element(By.CSS_SELECTOR, "div").text
-        
-        # 通常商品かゆうゆうメルカリ便かを確認する
+    
         try:
-            base_xpath = "/html/body/div/div/div[2]/main/div/div[1]/div/div/div[4]/mer-display-row/span[2]/div"
-            post_address = self.driver.find_element(By.XPATH, f"{base_xpath}/p[1]").text
-        except NoSuchElementException:
+            self.get_url(products_url)
+        except Exception as e:
+            self.record.logger.error(f"Failed to get URL: {e}")
+            return []
+
+        try:
+            # shadow-rootの読み込み
+            shadow_host_selector = "#main > div > div.sc-da871d51-2.hwxUTG > div > div > div.merList.border__d0a89e6b > div > div.content__e1ae3292 > a > mer-item-object"
+            shadow_host_element = self.driver.find_element(By.CSS_SELECTOR, shadow_host_selector)
+            
+            # shadowRoot要素を取得
+            shadow_root = self.driver.execute_script("return arguments[0].shadowRoot", shadow_host_element)
+        except Exception as e:
+            self.record.logger.error(f"Failed to execute shadow_root: {e}")
+            return []
+
+        try:
+            # 商品タイトルを取得
+            title = shadow_root.find_element(By.CSS_SELECTOR, "div").text
+        except Exception as e:
+            self.record.logger.error(f"Failed to find title element: {e}")
+            return []
+        
+        base_xpath = "/html/body/div/div/div[2]/main/div/div[1]/div/div/div[4]/mer-display-row/span[2]/div"
+        elements = self.driver.find_elements(By.XPATH, f"{base_xpath}/p[1]")
+
+        # If elements list is empty, it means that the element was not found.
+        if not elements:
             # ゆうゆうメルカリ便の場合、商品名とURL以外を空で返す
             post_address, primary_address, secondary_address, name = "", "", "", ""
             return [title, post_address, primary_address, secondary_address, name, products_url]
-        
-        # 通常商品の場合、住所1,2を取得
+
+        post_address = elements[0].text
         primary_address = self.driver.find_element(By.XPATH, f"{base_xpath}/p[2]").text
         secondary_address = self.driver.find_element(By.XPATH, f"{base_xpath}/p[3]").text
 
-        # 住所2が設定しておらず、名前が入っていた場合は入れ替える
-        try:
-            name = self.driver.find_element(By.XPATH, f"{base_xpath}/p[4]").text
-        except NoSuchElementException:
+        elements = self.driver.find_elements(By.XPATH, f"{base_xpath}/p[4]")
+        if not elements:
             name, secondary_address = secondary_address, ""
+        else:
+            name = elements[0].text
 
         return [title, post_address, primary_address, secondary_address, name, products_url]
+
 
 
     def replace_non_shift_jis(self, text: str) -> str:
