@@ -86,8 +86,8 @@ class MercariScraper(object):
         shipping_dict = {}
         count = 1
         
-        while count < 5:
-        # while True:
+        # while count < 5:
+        while True:
             try:
                 # 商品情報
                 products_detail = self.driver.find_element(By.XPATH, f"/html/body/div[1]/div/div[2]/main/div[2]/div[{count}]/div[2]/a/mer-information-row").text
