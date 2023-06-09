@@ -86,7 +86,6 @@ class MercariScraper(object):
         shipping_dict = {}
         count = 1
         
-        # while count < 5:
         while True:
             try:
                 # 商品情報
@@ -150,7 +149,7 @@ class MercariScraper(object):
             self.record.logger.error(f"Failed to find title element: {e}")
             return []
         
-        base_xpath = "/html/body/div/div/div[2]/main/div/div[1]/div/div/div[4]/mer-display-row/span[2]/div"
+        base_xpath = "/html/body/div/div/div[2]/main/div/div[1]/div/div/div[4]/div/div[2]/span/div/"
         elements = self.driver.find_elements(By.XPATH, f"{base_xpath}/p[1]")
 
         # If elements list is empty, it means that the element was not found.

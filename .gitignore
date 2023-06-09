@@ -15,3 +15,10 @@ userdir.txt
 output.csv
 
 /source/__pycache__
+
+# app
+/app_debug
+
+/app
+
+/driver
