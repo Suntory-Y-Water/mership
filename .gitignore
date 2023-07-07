@@ -18,7 +18,6 @@ output.csv
 
 # app
 /app_debug
-
 /app
 
 /driver

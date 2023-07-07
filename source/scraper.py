@@ -24,69 +24,33 @@ class MercariScraper(object):
         self.driver_path = "../driver/msedgedriver.exe"
 
         self.options = webdriver.EdgeOptions()
-
-        # headless
-        # self.options.add_argument('--headless')
-        # self.options.add_argument('--window-size=1920,1080')
-
         self.options.add_argument(f"user-data-dir={user_dir}")
         self.options.add_argument(f"profile-directory={profile_dir}")
         self.options.add_experimental_option("excludeSwitches", ['enable-automation'])
 
     def init_driver(self):
-        """Configure the web driver
-
-        This class loads the web driver.
-        Wait 10 seconds for the element to appear, 
-        taking into account the JavaScript loading wait time.
-
-        Returns:
-            _type_: WebDriver
-        """
         self.driver = webdriver.Edge(service=Service(executable_path=self.driver_path), options=self.options)
-        self.driver.implicitly_wait(10)
+        self.driver.implicitly_wait(15)
         return self.driver
 
     def get_url(self, url:str):
-        """Transition to URL
-
-        Transit the screen to the given URL.
-
-        Args:
-            url (str): URL
-
-        Returns:
-            _type_: WebDriver
-        """
         self.driver.get(url=url)
         return self.driver
 
     def quit(self):
-        """Exit the driver
-        """
         self.driver.quit()
 
     def get_shipping_dict(self) -> list:
-        """Obtain a shipping address
-
-        After transitioning to the to-do list, retrieve product information one by one.
-        Then, the product name and product URL are stored as a dictionary, leaving only the products to be shipped.
-        In the return value, only the product URL is passed.
-        
-        Returns:
-            list: URL of the product to be shipped
-        """
         self.get_url("https://jp.mercari.com/todos")
-        
         self.record.logger.info("--------------------------------------")
         self.record.logger.info("　　　自動で発送する商品を取得します　　　")
         self.record.logger.info("--------------------------------------")
-
         
         shipping_dict = {}
         count = 1
         
-        while True:
+        # while True:
+        while count < 3:
             try:
                 # 商品情報
                 products_detail = self.driver.find_element(By.XPATH, f"/html/body/div[1]/div/div[2]/main/div[2]/div[{count}]/div[2]/a/mer-information-row").text
@@ -116,15 +80,6 @@ class MercariScraper(object):
     
 
     def get_buyer_information(self, products_url: str) -> list:
-        """_summary_
-
-        Args:
-            products_url (str): URL of the product to be shipped
-
-        Returns:
-            _type_: _description_
-        """
-    
         try:
             self.get_url(products_url)
         except Exception as e:
@@ -133,7 +88,7 @@ class MercariScraper(object):
 
         try:
             # shadow-rootの読み込み
-            shadow_host_selector = "#main > div > div.sc-da871d51-2.hwxUTG > div > div > div.merList.border__d0a89e6b > div > div.content__e1ae3292 > a > mer-item-object"
+            shadow_host_selector = "#main > div > div.sc-da871d51-2.hwxUTG > div > div > div.merList.border__17a1e07b > div > div.content__884ec505 > a > mer-item-object"
             shadow_host_element = self.driver.find_element(By.CSS_SELECTOR, shadow_host_selector)
             
             # shadowRoot要素を取得
@@ -149,11 +104,12 @@ class MercariScraper(object):
             self.record.logger.error(f"Failed to find title element: {e}")
             return []
         
-        base_xpath = "/html/body/div/div/div[2]/main/div/div[1]/div/div/div[4]/div/div[2]/span/div/"
+        base_xpath = "/html/body/div/div/div[2]/main/div/div[1]/div/div/div[4]/div/div[2]/span/div"
         elements = self.driver.find_elements(By.XPATH, f"{base_xpath}/p[1]")
 
         # If elements list is empty, it means that the element was not found.
         if not elements:
+            self.record.logger.info("値を取得できませんでした")
             # ゆうゆうメルカリ便の場合、商品名とURL以外を空で返す
             post_address, primary_address, secondary_address, name = "", "", "", ""
             return [title, post_address, primary_address, secondary_address, name, products_url]
@@ -169,8 +125,6 @@ class MercariScraper(object):
             name = elements[0].text
 
         return [title, post_address, primary_address, secondary_address, name, products_url]
-
-
 
     def replace_non_shift_jis(self, text: str) -> str:
         return text.encode('shift_jis', 'replace').decode('shift_jis').replace('?', '-')

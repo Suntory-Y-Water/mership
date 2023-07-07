@@ -92,7 +92,7 @@ class GUI(MercariScraper):
                     # URLに遷移し、処理を行う
                     scraper.process_urls(urls)
                     scraper.quit()
-                    messagebox.showinfo("終@了通知", "発送が完了しました")
+                    messagebox.showinfo("終了通知", "発送が完了しました")
 
             if event == '-move-':
                 result = move_ship_list()
