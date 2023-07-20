@@ -49,8 +49,7 @@ class MercariScraper(object):
         shipping_dict = {}
         count = 1
         
-        # while True:
-        while count < 3:
+        while True:
             try:
                 # 商品情報
                 products_detail = self.driver.find_element(By.XPATH, f"/html/body/div[1]/div/div[2]/main/div[2]/div[{count}]/div[2]/a/mer-information-row").text
@@ -88,7 +87,7 @@ class MercariScraper(object):
 
         try:
             # shadow-rootの読み込み
-            shadow_host_selector = "#main > div > div.sc-da871d51-2.hwxUTG > div > div > div.merList.border__17a1e07b > div > div.content__884ec505 > a > mer-item-object"
+            shadow_host_selector = "#main > div > div.sc-a6b7d8a7-2.hjAQSh > div > div > div.merList.border__17a1e07b > div > div.content__884ec505 > a > mer-item-object"
             shadow_host_element = self.driver.find_element(By.CSS_SELECTOR, shadow_host_selector)
             
             # shadowRoot要素を取得
@@ -109,7 +108,6 @@ class MercariScraper(object):
 
         # If elements list is empty, it means that the element was not found.
         if not elements:
-            self.record.logger.info("値を取得できませんでした")
             # ゆうゆうメルカリ便の場合、商品名とURL以外を空で返す
             post_address, primary_address, secondary_address, name = "", "", "", ""
             return [title, post_address, primary_address, secondary_address, name, products_url]
