@@ -21,19 +21,25 @@ class GUI(MercariScraper):
     # 発送する商品を取得するレイアウト
     def get_layout(self) -> list:
         layout = [[sg.Text("発送する商品を自動で取得するプログラムです\n\n必ずタスクマネージャーからMicrosoft Edgsのタスクを終了させてください\n", font=self.font)],
-                [sg.Button('商品を取得', key='-GET-', font=self.font)]]
+                [sg.Button('商品を取得', key='-get-', font=self.font)]]
         return layout
 
-    # 発送ボタンを押下するレイアウト
+    # 自動で発送通知をするレイアウト
     def ship_layout(self) -> list:
         layout = [[sg.Text("自動で発送通知を押下するプログラムです\n\n全ての発送が終了後に実施してください\n", font=self.font)],
                 [sg.Button('発送を通知する', key='-ship-', font=self.font)]]
         return layout
 
-    # 発送ボタンを押下するレイアウト
+    # 発送した商品の一覧を移動するレイアウト
     def move_file_layout(self) -> list:
         layout = [[sg.Text("自動で宛名ファイルを移動するプログラムです\n\n発送通知後に実施してください。\n", font=self.font)],
                 [sg.Button('ファイルを移動する', key='-move-', font=self.font)]]
+        return layout
+    
+    # 自動再出品を押下するレイアウト
+    def exhibit_layout(self) -> list:
+        layout = [[sg.Text("自動で再出品するプログラムです\n\n最新の上から50件ずつ再出品します\n", font=self.font)],
+                [sg.Button('再出品する', key='-exhibit-', font=self.font)]]
         return layout
     
     # メインウィンドウのレイアウト
@@ -41,10 +47,12 @@ class GUI(MercariScraper):
         get_data_layout = self.get_layout()
         ship_layout = self.ship_layout()
         move_layout = self.move_file_layout()
+        exhibit_layout = self.exhibit_layout()
         layout = [[sg.Text('業務を選択してください。', font=self.font)],
                 [sg.TabGroup([[sg.Tab('商品情報取得', get_data_layout),
                                 sg.Tab('発送通知', ship_layout),
-                                sg.Tab('ファイル移動', move_layout)]], key='-TABGROUP-', enable_events=True, font=self.font)]]    
+                                sg.Tab('ファイル移動', move_layout),
+                                sg.Tab('自動再出品', exhibit_layout)]], key='-TABGROUP-', enable_events=True, font=self.font)]]    
         return layout
 
     def main(self):
@@ -62,7 +70,7 @@ class GUI(MercariScraper):
                 self.record.logger.info("-----------------------------")
                 break
 
-            if event == '-GET-':
+            if event == '-get-':
                 scraper.init_driver()
                 self.record.logger.info("商品情報を取得中...")
                 shipping_url = scraper.get_shipping_dict()
@@ -99,6 +107,18 @@ class GUI(MercariScraper):
                 self.record.logger.info(result)
                 messagebox.showinfo("結果", result)
                 
+            if event == '-exhibit-':
+                scraper.init_driver()
+                self.record.logger.info("商品情報を取得中...")
+                products_url = scraper.get_listing_dict()
+                self.record.logger.info("各商品ページへ遷移します")
+                for url in products_url:
+                    info = scraper.re_exhibit_products(url)
+                    self.record.logger.info(info)
+                    time.sleep(2)
+                scraper.quit()
+
+                # messagebox.showinfo("終了通知", "再出品が完了しました")
         window.close()
 
 
