@@ -30,7 +30,7 @@ class MercariScraper(object):
 
     def init_driver(self):
         self.driver = webdriver.Edge(service=Service(executable_path=self.driver_path), options=self.options)
-        self.driver.implicitly_wait(15)
+        self.driver.implicitly_wait(10)
         return self.driver
 
     def get_url(self, url:str):
@@ -40,16 +40,134 @@ class MercariScraper(object):
     def quit(self):
         self.driver.quit()
 
+    def element_click(self, element:str, wait_time:int=1):
+        get_element = self.driver.find_element(By.XPATH, element)
+        get_element.click()
+        time.sleep(wait_time)
+        return get_element
+    
+    def get_listing_dict(self) -> list:
+        self.get_url("https://jp.mercari.com/mypage/listings")
+        time.sleep(6)
+        self.record.logger.info("--------------------------------------")
+        self.record.logger.info("　　　　再出品する商品を取得します　　　　")
+        self.record.logger.info("　　　　上から150件の商品情報を取得　　　")
+        self.record.logger.info("--------------------------------------")
+
+        products_url_list = []
+
+        count = 1
+
+        # もっと見るボタンを3回押す
+        while count < 4:
+            try:
+                # もっと見るボタンを押す
+                self.element_click(element="/html/body/div[1]/div/div[2]/main/div/div[2]/div/div/div/div/div[3]/div[2]/div[2]/div")
+                count += 1
+            except:
+                self.record.logger.info("全ページを表示しました")
+                break
+
+        # 取得する商品情報の初期値
+        products_count = 90
+
+        # 上から90個目の商品から一番下まで繰り返す
+        self.record.logger.info("商品URLを取得します")
+
+        # while True:
+        while products_count < 140:
+            try:
+                products_url = self.driver.find_element(By.CSS_SELECTOR, f"#currentListing > div.merList.border__17a1e07b.separator__17a1e07b > div:nth-child({products_count}) > div.content__884ec505 > a").get_attribute("href")
+                products_url_list.append(products_url)
+                products_count += 1
+                self.record.logger.info(f"取得したURL: {products_url}")
+                time.sleep(2)
+            except:
+                self.record.logger.info("URLを取得し終えました")
+                break
+
+        return products_url_list
+
+
+    def re_exhibit_products(self, products_url: str):
+
+        # 一つずつ商品のURLへ遷移する
+        try:
+            self.get_url(products_url)
+            time.sleep(5)
+        except Exception as e:
+            self.record.logger.error(f"Failed to get URL: {e}")
+            return []
+
+        # 公開停止中か確認する
+        not_exhibit_check = "#main > article > div.sc-a6b7d8a7-2.WrJQp > section > div > div > div > div > div.sc-a6b7d8a7-2.ishIRQ > div.sc-9e24edb4-0.iSdzAt > div > div > div > div > div > div > div > div > figure > div.sticker__a6f874a2 > div"
+        if len(self.driver.find_elements(By.CSS_SELECTOR, not_exhibit_check)) > 0:
+            self.record.logger.error("この商品は出品できません")
+            return
+        else:
+            pass
+        
+        # 商品ページで画像あり再出品押下
+        frima_assist_button = self.driver.find_element(By.CSS_SELECTOR, "#frima-assist-clone-mercari-0")
+        frima_assist_button.click()
+        
+        # 再出品時の処理 明示的な待機だとボタンを押してしまうため
+        time.sleep(9)
+        
+        # 出品する押下
+        exhibit_button = self.driver.find_element(By.XPATH, "/html/body/div[1]/div/div[2]/main/form/div[2]/div[1]")
+        exhibit_button.click()
+
+        # ボタンを押したあとの待機時間
+        time.sleep(2)
+        
+        # 商品情報編集画面に遷移するため、URLを置換する
+        replace_url = products_url.replace("item", "sell/edit")
+
+        try:
+            self.get_url(replace_url)
+        except Exception as e:
+            self.record.logger.error(f"Failed to get URL: {e}")
+            return []
+
+        # ボタンを押したあとの待機時間
+        time.sleep(2)
+
+        # 商品を削除する押下
+        delete_button = self.driver.find_element(By.XPATH, "/html/body/div[1]/div/div[2]/main/form/div[2]/div[3]")
+        delete_button.click()
+
+        # ボタンを押したあとの待機時間
+        time.sleep(1)
+
+        # 本当に削除しますか押下
+        really_delete_button = self.driver.find_element(By.XPATH, "/html/body/mer-dialog/div[2]/div[2]")
+        really_delete_button.click()
+
+        return products_url
+
+
     def get_shipping_dict(self) -> list:
         self.get_url("https://jp.mercari.com/todos")
         self.record.logger.info("--------------------------------------")
-        self.record.logger.info("　　　自動で発送する商品を取得します　　　")
+        self.record.logger.info("　　　　　発送する商品を取得します　　　　")
         self.record.logger.info("--------------------------------------")
         
         shipping_dict = {}
         count = 1
-        
+
+        # もっと見るボタン押下
         while True:
+            try:
+                # もっと見るボタンを押す
+                self.element_click(element="/html/body/div[1]/div/div[2]/main/div[3]/div")
+                count += 1
+            except:
+                self.record.logger.info("全商品表示完了")
+                break
+        
+        while count < 4:
+        # while True:
             try:
                 # 商品情報
                 products_detail = self.driver.find_element(By.XPATH, f"/html/body/div[1]/div/div[2]/main/div[2]/div[{count}]/div[2]/a/mer-information-row").text
@@ -79,6 +197,15 @@ class MercariScraper(object):
     
 
     def get_buyer_information(self, products_url: str) -> list:
+        """_summary_
+        
+            Shadow-rootによって取得できるときとできないときあり
+            #main > div > div.sc-a6b7d8a7-2.hjAQSh > div > div > div.merList.border__17a1e07b > div > div.content__884ec505 > a > mer-item-object
+
+            商品名取得できた
+            #main > div > div.sc-a6b7d8a7-2.eJMYBS > div.sc-15f6890f-0.sLQBS > div.merList.border__17a1e07b > div > div.content__884ec505 > a > mer-item-object
+
+        """
         try:
             self.get_url(products_url)
         except Exception as e:
@@ -87,9 +214,8 @@ class MercariScraper(object):
 
         try:
             # shadow-rootの読み込み
-            shadow_host_selector = "#main > div > div.sc-a6b7d8a7-2.hjAQSh > div > div > div.merList.border__17a1e07b > div > div.content__884ec505 > a > mer-item-object"
+            shadow_host_selector = "#main > div > div.sc-a6b7d8a7-2.eJMYBS > div.sc-15f6890f-0.sLQBS > div.merList.border__17a1e07b > div > div.content__884ec505 > a > mer-item-object"
             shadow_host_element = self.driver.find_element(By.CSS_SELECTOR, shadow_host_selector)
-            
             # shadowRoot要素を取得
             shadow_root = self.driver.execute_script("return arguments[0].shadowRoot", shadow_host_element)
         except Exception as e:
@@ -103,10 +229,9 @@ class MercariScraper(object):
             self.record.logger.error(f"Failed to find title element: {e}")
             return []
         
-        base_xpath = "/html/body/div/div/div[2]/main/div/div[1]/div/div/div[4]/div/div[2]/span/div"
+        base_xpath = '/html/body/div[1]/div/div[2]/main/div/div[1]/div/div/div[4]/div/div[2]/span/div'
         elements = self.driver.find_elements(By.XPATH, f"{base_xpath}/p[1]")
 
-        # If elements list is empty, it means that the element was not found.
         if not elements:
             # ゆうゆうメルカリ便の場合、商品名とURL以外を空で返す
             post_address, primary_address, secondary_address, name = "", "", "", ""
